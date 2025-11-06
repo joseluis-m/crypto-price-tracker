@@ -2,8 +2,18 @@ name: Auto Commit Crypto Prices
 
 on:
   schedule:
-    - cron: "0 0 * * *"
+    # Ejecuta cada hora en el minuto 0 (UTC). El script decide si toca escribir o no.
+    - cron: "0 * * * *"
   workflow_dispatch:
+
+# Necesario para que GITHUB_TOKEN pueda hacer push en eventos programados
+permissions:
+  contents: write
+
+# Evita solapamientos si una ejecución tarda más de una hora
+concurrency:
+  group: auto-commit-crypto-prices
+  cancel-in-progress: false
 
 jobs:
   update:
@@ -11,25 +21,35 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
+          python-version: "3.x"
+          cache: "pip"
 
       - name: Install dependencies
-        run: pip install requests
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
 
       - name: Run update_prices.py
         run: python update_prices.py
 
-      - name: Commit changes
+      - name: Commit & Push (solo si hay cambios)
         run: |
-          git config --local user.email "eljoselu6moreno@gmail.com"
-          git config --local user.name "José Luis Moreno"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # ¿Hay cambios? (si el script no escribió, no habrá diffs)
+          if git diff --quiet; then
+            echo "Sin cambios; no se hace commit."
+            exit 0
+          fi
+
           git add prices.csv
-          git commit -m "Auto-update crypto prices $(date -u +'%Y-%m-%d %H:%M:%S UTC')" || echo "No changes to commit"
+          git commit -m "Update prices: $(date -u '+%Y-%m-%d %H:%M:%S') UTC"
           git push

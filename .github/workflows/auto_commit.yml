@@ -6,11 +6,9 @@ on:
     - cron: "0 * * * *"
   workflow_dispatch:
 
-# Necesario para que GITHUB_TOKEN pueda hacer push en eventos programados
 permissions:
   contents: write
 
-# Evita solapamientos si una ejecución tarda más de una hora
 concurrency:
   group: auto-commit-crypto-prices
   cancel-in-progress: false
@@ -28,8 +26,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.x"
-          cache: "pip"
+          python-version: "3.x"   # Sin cache para no exigir requirements.txt/pyproject.toml
 
       - name: Install dependencies
         run: |
@@ -44,8 +41,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          # ¿Hay cambios? (si el script no escribió, no habrá diffs)
-          if git diff --quiet; then
+          # ¿Hay cambios (incluye archivos nuevos)?
+          if [ -z "$(git status --porcelain)" ]; then
             echo "Sin cambios; no se hace commit."
             exit 0
           fi

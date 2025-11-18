@@ -6,11 +6,11 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: write          # necesario para poder hacer push al repo
 
 concurrency:
   group: auto-commit-crypto-prices
-  cancel-in-progress: true  # evita solapamiento de ejecuciones si una se queda colgada
+  cancel-in-progress: true # evita solapamiento de ejecuciones
 
 env:
   PYTHON_VERSION: '3.12'
@@ -25,24 +25,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # historial completo (útil si en el futuro quieres hacer análisis de git)
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip  # cache de dependencias para acelerar ejecuciones
 
-      # Si tienes un requirements.txt, se usaría esto
-      - name: Install dependencies (requirements.txt)
-        if: hashFiles('requirements.txt') != ''
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      # Fallback minimal si no existe requirements.txt
-      - name: Install dependencies (simple)
-        if: hashFiles('requirements.txt') == ''
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install requests

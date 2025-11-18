@@ -2,7 +2,7 @@ name: Auto Commit Crypto Prices
 
 on:
   schedule:
-    - cron: "0 * * * *"   # cada hora (UTC); el script decide si escribe
+    - cron: '0 * * * *'   # cada hora (UTC); el script decide si escribe
   workflow_dispatch:
 
 permissions:
@@ -10,24 +10,39 @@ permissions:
 
 concurrency:
   group: auto-commit-crypto-prices
-  cancel-in-progress: false
+  cancel-in-progress: true  # evita solapamiento de ejecuciones si una se queda colgada
+
+env:
+  PYTHON_VERSION: '3.12'
+  PRICES_FILE: prices.csv
 
 jobs:
   update:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0  # historial completo (útil si en el futuro quieres hacer análisis de git)
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.x"
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip  # cache de dependencias para acelerar ejecuciones
 
-      - name: Install dependencies
+      # Si tienes un requirements.txt, se usaría esto
+      - name: Install dependencies (requirements.txt)
+        if: hashFiles('requirements.txt') != ''
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # Fallback minimal si no existe requirements.txt
+      - name: Install dependencies (simple)
+        if: hashFiles('requirements.txt') == ''
         run: |
           python -m pip install --upgrade pip
           pip install requests
@@ -47,6 +62,6 @@ jobs:
             exit 0
           fi
 
-          git add prices.csv
+          git add "${PRICES_FILE}"
           git commit -m "Update prices: $(date -u '+%Y-%m-%d %H:%M:%S') UTC"
           git push

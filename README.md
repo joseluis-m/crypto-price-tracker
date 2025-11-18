@@ -2,36 +2,51 @@
 
 [![Auto Commit Crypto Prices](https://github.com/joseluis-m/crypto-price-tracker/actions/workflows/auto_commit.yml/badge.svg)](https://github.com/joseluis-m/crypto-price-tracker/actions)
 
-Seguimiento automatizado de los precios de **Bitcoin** y **Ethereum** con la API de CoinGecko. Un workflow de GitHub Actions se ejecuta **cada hora (UTC)** y el script selecciona de forma determinista, sin guardar estado, **entre 1 y 5 horas únicas al día** para registrar datos en `prices.csv`. Los commits solo se realizan cuando hay cambios.
+Seguimiento automatizado de los precios de **Bitcoin** y **Ethereum** usando la API de CoinGecko.  
+Un workflow de GitHub Actions se ejecuta **cada hora (UTC)** y el script decide, de forma determinista y sin guardar estado, **entre 1 y 15 horas únicas al día** en las que registrar datos en `prices.csv`.  
+Los commits solo se realizan cuando el archivo cambia, lo que lo hace ideal para consumirlo desde **GitHub Pages** como fuente de datos estática.
 
 ## Características
+
 - Automatización con GitHub Actions (cron horario en UTC).
-- Registro aleatorio determinista **1–15 veces al día** por fecha UTC.
-- CSV con columnas: `Timestamp (UTC)`, `Bitcoin (USD)`, `Ethereum (USD)`.
+- Registro aleatorio determinista 1–15 veces al día por fecha UTC.
+- Archivo CSV con columnas: `Timestamp (UTC)`, `Bitcoin (USD)`, `Ethereum (USD)`.
 - Commit y push condicionados a la existencia de cambios.
-- Código simple en Python 3.x con `requests`.
+- Script sencillo en Python 3 (probado en 3.12) con `requests`.
 
 ## Cómo funciona
-1. **Plan diario determinista:** para cada fecha UTC se genera una semilla y se eligen de 1 a 5 horas únicas del día.
-2. **Ejecución horaria:** el workflow invoca el script; este solo escribe si la hora actual está en el plan.
-3. **Obtención de precios:** consulta a CoinGecko con control básico de errores y `timeout`.
-4. **Persistencia:** crea `prices.csv` con cabecera si no existe y añade una fila por ejecución válida.
-5. **Commit/push:** el workflow añade y comitea únicamente si el CSV cambió.
 
-## Estructura
-- `update_prices.py`
-- `prices.csv` (generado/actualizado por el workflow)
-- `.github/workflows/auto_commit.yml` (cron: `0 * * * *`)
+1. **Plan diario determinista**  
+   Para cada fecha UTC se calcula una semilla y se elige un conjunto de horas únicas (1–15). El mismo día siempre produce el mismo plan.
+
+2. **Ejecución horaria**  
+   El workflow se ejecuta cada hora. El script solo escribe al CSV cuando la hora UTC actual está en el plan del día.
+
+3. **Obtención de precios**  
+   Se consulta la API de CoinGecko con `timeout` y manejo básico de errores. Si la API no responde, se escribe `N/A` para mantener la serie temporal.
+
+4. **Persistencia y versionado**  
+   Si no existe, se crea `prices.csv` con cabecera; en cada ejecución válida se añade una fila y, si hay cambios, se realiza commit y push al repositorio (lo que a su vez dispara la build de GitHub Pages si está configurado).
+
+## Estructura del repositorio
+
+- `update_prices.py` — script que decide si registrar y escribe el CSV.
+- `prices.csv` — serie histórica generada/actualizada por el workflow.
+- `.github/workflows/auto_commit.yml` — workflow con cron `0 * * * *`.
 
 ## Ejecución local (opcional)
-- Requisitos: Python 3.x y `requests`.
-- Pasos:
-  1. Clonar el repositorio: `git clone https://github.com/joseluis-m/crypto-price-tracker.git` y `cd crypto-price-tracker`.
-  2. Instalar dependencias: `python -m pip install --upgrade pip && pip install requests`.
-  3. Ejecutar: `python update_prices.py` (si la hora UTC no está en el plan del día, no habrá cambios).
 
-## Notas
-- Se usa **UTC** para coherencia con el cron y la trazabilidad.
-- La selección diaria de horas cambia cada día y permanece estable dentro del mismo día.
-- El workflow define `permissions: contents: write` para poder hacer push en ejecuciones programadas.
-- CoinGecko puede aplicar límites de uso; el proyecto realiza un volumen muy bajo de consultas.
+Requisitos: Python 3 y el paquete `requests`.
+
+Pasos básicos:
+
+1. Clonar el repositorio:  
+   `git clone https://github.com/joseluis-m/crypto-price-tracker.git`  
+   `cd crypto-price-tracker`
+2. Instalar dependencias:  
+   `python -m pip install --upgrade pip`  
+   `pip install requests`
+3. Ejecutar el script:  
+   `python update_prices.py`  
+
+Si la hora UTC actual no está en el plan del día, no se modificará `prices.csv` y no habrá cambios para commitear.

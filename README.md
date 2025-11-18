@@ -6,7 +6,7 @@ Seguimiento automatizado de los precios de **Bitcoin** y **Ethereum** con la API
 
 ## Características
 - Automatización con GitHub Actions (cron horario en UTC).
-- Registro aleatorio determinista **1–5 veces al día** por fecha UTC.
+- Registro aleatorio determinista **1–15 veces al día** por fecha UTC.
 - CSV con columnas: `Timestamp (UTC)`, `Bitcoin (USD)`, `Ethereum (USD)`.
 - Commit y push condicionados a la existencia de cambios.
 - Código simple en Python 3.x con `requests`.
